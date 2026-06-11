@@ -3,90 +3,393 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>StreamZAP — ライブ配信ザッピングツール</title>
+  <title>StreamZAP — TwitchもYouTubeも、一画面で。</title>
   <link rel="icon" href="./icon128.png" type="image/png">
   <style>
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
+
+    :root {
+      --bg: #0a0a0c;
+      --surface: #131316;
+      --surface2: #1a1a1e;
+      --border: #24242a;
+      --tw: #9147ff;
+      --tw-dim: rgba(145,71,255,0.15);
+      --yt: #cc0000;
+      --yt-dim: rgba(204,0,0,0.15);
+      --text: #efeff1;
+      --muted: #7a7a8a;
+      --subtle: #3a3a44;
+    }
+
+    html { scroll-behavior: smooth; }
+
     body {
-      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-      background: #0e0e10;
-      color: #efeff1;
-      min-height: 100vh;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      padding: 40px 24px;
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Hiragino Sans', 'Yu Gothic UI', sans-serif;
+      line-height: 1.7;
+      -webkit-font-smoothing: antialiased;
     }
-    .container { max-width: 680px; width: 100%; text-align: center; }
-    .header { display: flex; align-items: center; justify-content: center; gap: 16px; margin-bottom: 12px; }
-    .icon { width: 56px; height: 56px; border-radius: 14px; }
-    h1 { font-size: 36px; font-weight: 700; color: #efeff1; }
-    .tagline { font-size: 17px; color: #adadb8; margin-bottom: 32px; }
+
+    /* NAV */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 100;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 32px;
+      background: rgba(10,10,12,0.85);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+    }
+    .nav-logo { display: flex; align-items: center; gap: 10px; }
+    .nav-logo img { width: 28px; height: 28px; border-radius: 7px; }
+    .nav-logo span { font-size: 16px; font-weight: 700; letter-spacing: 0.02em; }
+    .nav-cta {
+      background: var(--tw); color: #fff;
+      border: none; border-radius: 8px;
+      padding: 8px 18px; font-size: 13px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: opacity 0.15s;
+    }
+    .nav-cta:hover { opacity: 0.85; }
+
+    /* HERO */
     .hero {
-      width: 100%; border-radius: 12px; overflow: hidden;
-      margin-bottom: 32px; border: 1px solid #2a2a2e;
-      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+      min-height: 100vh;
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      text-align: center;
+      padding: 120px 24px 80px;
+      position: relative; overflow: hidden;
     }
-    .hero img { width: 100%; display: block; }
-    .description {
-      background: #18181b; border-radius: 12px;
-      padding: 28px 32px; margin-bottom: 28px;
-      text-align: left; line-height: 1.8; color: #efeff1;
+    .hero::before {
+      content: '';
+      position: absolute; top: -200px; left: 50%; transform: translateX(-50%);
+      width: 800px; height: 800px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(145,71,255,0.08) 0%, transparent 70%);
+      pointer-events: none;
     }
-    .description h2 { font-size: 15px; color: #9147ff; margin-bottom: 12px; font-weight: 600; }
-    .features { list-style: none; }
-    .features li { padding: 5px 0; color: #adadb8; display: flex; align-items: flex-start; gap: 10px; font-size: 14px; }
-    .features li::before { content: '⚡'; flex-shrink: 0; }
-    .badges { display: flex; gap: 12px; justify-content: center; margin-bottom: 28px; flex-wrap: wrap; }
-    .badge {
+    .hero-badge {
       display: inline-flex; align-items: center; gap: 6px;
-      padding: 8px 16px; border-radius: 8px;
-      font-size: 13px; font-weight: 600; text-decoration: none;
+      background: var(--surface2); border: 1px solid var(--border);
+      border-radius: 20px; padding: 5px 14px;
+      font-size: 12px; color: var(--muted);
+      margin-bottom: 28px; letter-spacing: 0.04em;
     }
-    .badge-tw { background: rgba(145,71,255,0.2); color: #bf94ff; border: 1px solid rgba(145,71,255,0.3); }
-    .badge-yt { background: rgba(204,0,0,0.2); color: #ff8080; border: 1px solid rgba(204,0,0,0.3); }
-    .links { display: flex; gap: 20px; justify-content: center; flex-wrap: wrap; margin-bottom: 32px; }
-    .links a { color: #adadb8; font-size: 13px; text-decoration: none; }
-    .links a:hover { color: #efeff1; }
-    .links span { color: #3a3a3d; }
-    .footer { color: #3a3a3d; font-size: 12px; }
+    .hero-badge span { color: var(--tw); }
+    .hero h1 {
+      font-size: clamp(36px, 6vw, 72px);
+      font-weight: 800;
+      line-height: 1.15;
+      letter-spacing: -0.02em;
+      margin-bottom: 20px;
+    }
+    .tw { color: var(--tw); }
+    .yt { color: var(--yt); }
+    .hero-sub {
+      font-size: clamp(15px, 2vw, 18px);
+      color: var(--muted); max-width: 480px;
+      margin: 0 auto 40px;
+    }
+    .hero-btns { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; }
+    .btn-primary {
+      background: var(--tw); color: #fff;
+      border: none; border-radius: 10px;
+      padding: 13px 28px; font-size: 15px; font-weight: 600;
+      cursor: pointer; text-decoration: none;
+      transition: opacity 0.15s, transform 0.15s;
+      display: inline-flex; align-items: center; gap: 8px;
+    }
+    .btn-primary:hover { opacity: 0.88; transform: translateY(-1px); }
+    .btn-secondary {
+      background: transparent; color: var(--text);
+      border: 1px solid var(--border); border-radius: 10px;
+      padding: 13px 28px; font-size: 15px; font-weight: 500;
+      cursor: pointer; text-decoration: none;
+      transition: border-color 0.15s;
+    }
+    .btn-secondary:hover { border-color: var(--subtle); }
+
+    /* DIVIDER */
+    .divider {
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--border), transparent);
+      margin: 0 auto; max-width: 800px;
+    }
+
+    /* PAIN */
+    .pain {
+      padding: 80px 24px;
+      max-width: 760px; margin: 0 auto; text-align: center;
+    }
+    .section-label {
+      font-size: 11px; font-weight: 600; letter-spacing: 0.12em;
+      color: var(--muted); text-transform: uppercase;
+      margin-bottom: 16px;
+    }
+    .pain h2 { font-size: clamp(22px, 3vw, 32px); font-weight: 700; margin-bottom: 16px; }
+    .pain p { color: var(--muted); font-size: 16px; }
+    .pain-cards {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 12px; margin-top: 40px;
+    }
+    .pain-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 12px; padding: 20px;
+      text-align: left; font-size: 14px; color: var(--muted);
+      line-height: 1.6;
+    }
+    .pain-card::before { content: '😤'; display: block; font-size: 22px; margin-bottom: 10px; }
+
+    /* FEATURES */
+    .features {
+      padding: 80px 24px;
+      max-width: 900px; margin: 0 auto;
+    }
+    .features-header { text-align: center; margin-bottom: 48px; }
+    .features-header h2 { font-size: clamp(22px, 3vw, 32px); font-weight: 700; }
+    .features-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 16px;
+    }
+    .feature-card {
+      background: var(--surface); border: 1px solid var(--border);
+      border-radius: 14px; padding: 28px;
+    }
+    .feature-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; margin-bottom: 16px;
+    }
+    .fi-tw { background: var(--tw-dim); }
+    .fi-yt { background: var(--yt-dim); }
+    .fi-both { background: linear-gradient(135deg, var(--tw-dim), var(--yt-dim)); }
+    .feature-card h3 { font-size: 15px; font-weight: 600; margin-bottom: 8px; }
+    .feature-card p { font-size: 13px; color: var(--muted); line-height: 1.6; }
+
+    /* HOW */
+    .how {
+      padding: 80px 24px;
+      max-width: 700px; margin: 0 auto; text-align: center;
+    }
+    .how h2 { font-size: clamp(22px, 3vw, 32px); font-weight: 700; margin-bottom: 48px; }
+    .steps { display: flex; flex-direction: column; gap: 0; }
+    .step { display: flex; align-items: flex-start; gap: 20px; text-align: left; padding: 20px 0; border-bottom: 1px solid var(--border); }
+    .step:last-child { border-bottom: none; }
+    .step-num {
+      width: 36px; height: 36px; border-radius: 50%; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 14px; font-weight: 700;
+      background: var(--tw-dim); color: var(--tw); border: 1px solid rgba(145,71,255,0.3);
+    }
+    .step-body h3 { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+    .step-body p { font-size: 13px; color: var(--muted); }
+
+    /* SCREENSHOT */
+    .screenshot-section {
+      padding: 80px 24px;
+      max-width: 960px; margin: 0 auto; text-align: center;
+    }
+    .screenshot-section h2 { font-size: clamp(22px, 3vw, 32px); font-weight: 700; margin-bottom: 12px; }
+    .screenshot-section p { color: var(--muted); margin-bottom: 36px; }
+    .screenshot-wrap {
+      border-radius: 14px; overflow: hidden;
+      border: 1px solid var(--border);
+      box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+    }
+    .screenshot-wrap img { width: 100%; display: block; }
+
+    /* PLATFORMS */
+    .platforms {
+      padding: 60px 24px;
+      max-width: 600px; margin: 0 auto; text-align: center;
+    }
+    .platform-badges { display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: 24px; }
+    .pb {
+      display: inline-flex; align-items: center; gap: 8px;
+      padding: 10px 20px; border-radius: 10px;
+      font-size: 14px; font-weight: 600;
+    }
+    .pb-tw { background: var(--tw-dim); color: #bf94ff; border: 1px solid rgba(145,71,255,0.2); }
+    .pb-yt { background: var(--yt-dim); color: #ff8080; border: 1px solid rgba(204,0,0,0.2); }
+
+    /* CTA */
+    .cta-section {
+      padding: 100px 24px;
+      text-align: center;
+      position: relative; overflow: hidden;
+    }
+    .cta-section::before {
+      content: '';
+      position: absolute; bottom: -100px; left: 50%; transform: translateX(-50%);
+      width: 600px; height: 400px; border-radius: 50%;
+      background: radial-gradient(ellipse, rgba(145,71,255,0.06) 0%, transparent 70%);
+      pointer-events: none;
+    }
+    .cta-section h2 { font-size: clamp(24px, 4vw, 48px); font-weight: 800; margin-bottom: 12px; letter-spacing: -0.02em; }
+    .cta-section p { color: var(--muted); font-size: 16px; margin-bottom: 36px; }
+
+    /* FOOTER */
+    footer {
+      border-top: 1px solid var(--border);
+      padding: 28px 32px;
+      display: flex; justify-content: space-between; align-items: center;
+      flex-wrap: wrap; gap: 12px;
+      max-width: 100%;
+    }
+    .footer-logo { display: flex; align-items: center; gap: 8px; font-size: 14px; font-weight: 600; color: var(--muted); }
+    .footer-logo img { width: 20px; height: 20px; border-radius: 5px; }
+    .footer-links { display: flex; gap: 20px; }
+    .footer-links a { font-size: 13px; color: var(--muted); text-decoration: none; }
+    .footer-links a:hover { color: var(--text); }
+
+    @media (max-width: 600px) {
+      nav { padding: 12px 16px; }
+      footer { flex-direction: column; text-align: center; }
+      .footer-links { justify-content: center; }
+    }
   </style>
 </head>
 <body>
-  <div class="container">
-    <div class="header">
-      <img class="icon" src="./icon128.png" alt="StreamZAP icon">
-      <h1>StreamZAP</h1>
-    </div>
-    <p class="tagline">ライブ配信ザッピングツール / Live Stream Zapper</p>
 
-    <div class="hero">
-      <img src="./screenshot2_youtube.png" alt="StreamZAP in action on YouTube">
-    </div>
-
-    <div class="description">
-      <h2>StreamZAPとは？ / What is StreamZAP?</h2>
-      <ul class="features">
-        <li>TwitchとYouTubeのフォロー中ライブ配信を横断して一覧表示</li>
-        <li>配信を見ながらサイドパネルで他の配信をチェック</li>
-        <li>マウスを右端に近づけるだけでパネルが開く</li>
-        <li>視聴者数が多い順に並び替えて表示</li>
-        <li>ワンクリックで新しいタブで配信へ移動</li>
-      </ul>
-    </div>
-
-    <div class="badges">
-      <span class="badge badge-tw">Twitch 対応</span>
-      <span class="badge badge-yt">YouTube 対応</span>
-    </div>
-
-    <div class="links">
-      <a href="./privacy-policy.html">プライバシーポリシー / Privacy Policy</a>
-      <span>|</span>
-      <a href="./terms.html">利用規約 / Terms of Service</a>
-    </div>
-
-    <p class="footer">StreamZAP © 2025</p>
+<!-- NAV -->
+<nav>
+  <div class="nav-logo">
+    <img src="./icon128.png" alt="StreamZAP">
+    <span>StreamZAP</span>
   </div>
+  <a href="https://chromewebstore.google.com" class="nav-cta">Chrome に追加</a>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-badge">⚡ Chrome拡張機能 <span>無料</span></div>
+  <h1>
+    <span class="tw">Twitch</span>も<span class="yt">YouTube</span>も、<br>一画面で。
+  </h1>
+  <p class="hero-sub">フォロー中のライブ配信を横断して一覧表示。配信を見ながら、次の配信へザッピングができます。</p>
+  <div class="hero-btns">
+    <a href="https://chromewebstore.google.com" class="btn-primary">⚡ 無料でインストール</a>
+    <a href="#how" class="btn-secondary">使い方を見る</a>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PAIN -->
+<section class="pain">
+  <div class="section-label">こんな悩み、ありませんか？</div>
+  <h2>配信のザッピングって、<br>意外と面倒くさい。</h2>
+  <p>TwitchとYouTubeを行き来して、誰が配信中か確認して、タブを切り替えて…。それだけで時間がかかる。</p>
+  <div class="pain-cards">
+    <div class="pain-card">TwitchとYouTubeを別々に確認しないといけない</div>
+    <div class="pain-card">YouTubeにはTwitchのようなサイドバーがない</div>
+    <div class="pain-card">配信を見ながら他の配信者をチェックできない</div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- FEATURES -->
+<section class="features">
+  <div class="features-header">
+    <div class="section-label">StreamZAPの特徴</div>
+    <h2>ザッピングを、もっとスムーズに。</h2>
+  </div>
+  <div class="features-grid">
+    <div class="feature-card">
+      <div class="feature-icon fi-both">⚡</div>
+      <h3>TwitchとYouTubeを横断</h3>
+      <p>フォロー中の配信者が両プラットフォームで一覧表示される。タブの切り替えは不要。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-tw">👁</div>
+      <h3>視聴者数順に並び替え</h3>
+      <p>今盛り上がっている配信が上に来る。話題の配信を見逃さない。</p>
+    </div>
+    <div class="feature-card">
+      <div class="feature-icon fi-yt">🖱</div>
+      <h3>右端にマウスを近づけるだけ</h3>
+      <p>配信を見ながらパネルを開ける。コメント欄はそのまま、邪魔しない。</p>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- HOW TO USE -->
+<section class="how" id="how">
+  <div class="section-label">使い方</div>
+  <h2>3ステップで使える。</h2>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-body">
+        <h3>インストールしてアカウントを連携</h3>
+        <p>拡張機能のアイコンをクリックして、TwitchとYouTubeのアカウントを連携するだけ。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-body">
+        <h3>配信ページを開く</h3>
+        <p>TwitchまたはYouTubeで好きな配信を開く。設定は不要。</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-body">
+        <h3>右端にマウスを近づける</h3>
+        <p>パネルがスライドして開く。見たい配信をクリックすると新しいタブで開く。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- SCREENSHOT -->
+<section class="screenshot-section">
+  <div class="section-label">スクリーンショット</div>
+  <h2>実際の画面</h2>
+  <p>YouTubeで配信を見ながら、フォロー中のライブ一覧が右側に表示される。</p>
+  <div class="screenshot-wrap">
+    <img src="./screenshot2_youtube.png" alt="StreamZAPの動作画面">
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- PLATFORMS -->
+<section class="platforms">
+  <div class="section-label">対応プラットフォーム</div>
+  <p style="font-size:16px; font-weight:600;">どちらか一方でも、両方でも使える。</p>
+  <div class="platform-badges">
+    <span class="pb pb-tw">▮▮ Twitch 対応</span>
+    <span class="pb pb-yt">▶ YouTube 対応</span>
+  </div>
+</section>
+
+<div class="divider"></div>
+
+<!-- CTA -->
+<section class="cta-section">
+  <h2>今すぐ、<span class="tw">無料</span>で始める。</h2>
+  <p>インストールは30秒。ザッピングが変わります！</p>
+  <a href="https://chromewebstore.google.com" class="btn-primary" style="font-size:16px; padding:15px 36px;">⚡ Chrome に追加する（無料）</a>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-logo">
+    <img src="./icon128.png" alt="StreamZAP">
+    StreamZAP © 2025
+  </div>
+  <div class="footer-links">
+    <a href="./privacy-policy.html">プライバシーポリシー</a>
+    <a href="./terms.html">利用規約</a>
+  </div>
+</footer>
+
 </body>
 </html>
